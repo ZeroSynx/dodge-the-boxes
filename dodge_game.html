@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dodge the Boxes</title>
+  <style>
+    body { margin: 0; background: #111; overflow: hidden; }
+    canvas { display: block; margin: auto; background: #222; }
+    #restartButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 10px 20px;
+      background: green;
+      color: white;
+      font-size: 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      display: none;
+    }
+    #highscore {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game" width="400" height="600"></canvas>
+<button id="restartButton">Restart</button>
+<div id="highscore">Highscore: 0</div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const restartButton = document.getElementById('restartButton');
+const highscoreElem = document.getElementById('highscore');
+let playerX = 200;
+const playerWidth = 40;
+const playerHeight = 20;
+let boxes = [];
+let score = 0;
+let highscore = localStorage.getItem('highscore') || 0;
+let gameOver = false;
+
+function drawPlayer() {
+  ctx.fillStyle = 'lime';
+  ctx.fillRect(playerX, canvas.height - playerHeight - 10, playerWidth, playerHeight);
+}
+
+function drawBox(box) {
+  ctx.fillStyle = 'red';
+  ctx.fillRect(box.x, box.y, 40, 20);
+}
+
+function updateBoxes() {
+  boxes.forEach(box => box.y += 5);
+  boxes = boxes.filter(box => box.y < canvas.height);
+  if (Math.random() < 0.05) {
+    boxes.push({ x: Math.random() * (canvas.width - 40), y: 0 });
+  }
+}
+
+function detectCollision() {
+  for (let box of boxes) {
+    if (
+      box.y + 20 >= canvas.height - playerHeight - 10 &&
+      box.x < playerX + playerWidth &&
+      box.x + 40 > playerX
+    ) {
+      gameOver = true;
+      if (score > highscore) {
+        highscore = score;
+        localStorage.setItem('highscore', highscore);
+      }
+    }
+  }
+}
+
+function drawScore() {
+  ctx.fillStyle = 'white';
+  ctx.font = '20px sans-serif';
+  ctx.fillText('Score: ' + score, 10, 30);
+}
+
+function drawHighscore() {
+  highscoreElem.textContent = 'Highscore: ' + highscore;
+}
+
+function gameLoop() {
+  if (gameOver) {
+    ctx.fillStyle = 'white';
+    ctx.font = '40px sans-serif';
+    ctx.fillText('Game Over', 100, 300);
+    restartButton.style.display = 'block'; // Show Restart button
+    return;
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawPlayer();
+  boxes.forEach(drawBox);
+  updateBoxes();
+  detectCollision();
+  drawScore();
+  drawHighscore();
+  score++;
+  requestAnimationFrame(gameLoop);
+}
+
+function startGame() {
+  playerX = 200;
+  boxes = [];
+  score = 0;
+  gameOver = false;
+  restartButton.style.display = 'none'; // Hide Restart button
+  gameLoop();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'a' || e.key === 'A') playerX -= 20;
+  if (e.key === 'd' || e.key === 'D') playerX += 20;
+  playerX = Math.max(0, Math.min(canvas.width - playerWidth, playerX));
+});
+
+// Add event listener to the Restart button
+restartButton.addEventListener('click', startGame);
+
+gameLoop();
+</script>
+</body>
+</html>
